@@ -1,95 +1,139 @@
-import Image from "next/image";
+"use client"
+
+import { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import styles from "./page.module.css";
+
+function useWindowScroll(): number {
+  const [scroll, setScroll] = useState<number>(window.scrollY);
+
+  const handleScroll = useCallback(() => {
+    setScroll(window.scrollY);
+  }, []);
+
+  useEffect(() => {
+    handleScroll();
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  return scroll;
+}
+
+const ScrollProgressContext = createContext({
+  progress: 0,
+  boxRef: {} as React.RefObject<HTMLDivElement>,
+});
+
+function ScrollProgressProvider({
+  boxRef,
+  children,
+} : {
+  boxRef: React.RefObject<HTMLDivElement>
+  children: ReactNode,
+}) {
+  const scroll = useWindowScroll();
+  const [progress, setProgress] = useState<number>(0);
+
+  const getProgress = useCallback(() => {
+    if (boxRef?.current) {
+      const topPositionBox = boxRef.current.getBoundingClientRect().top + scroll;
+      const progress = Math.min(1, Math.max(0, (scroll - topPositionBox) / boxRef.current.clientHeight));
+
+      setProgress(progress);
+    }
+  }, [boxRef, scroll]);
+
+
+  useEffect(() => {
+    getProgress();
+    window.addEventListener("scroll", getProgress);
+    return () => window.removeEventListener("scroll", getProgress);
+  }, [getProgress]);
+
+  return (
+    <ScrollProgressContext.Provider value={{ progress, boxRef }}>
+      {children}
+    </ScrollProgressContext.Provider>
+  );
+}
+
+function useScrollProgress() {
+  const { progress, boxRef } = useContext(ScrollProgressContext);
+  return { progress, boxRef };
+}
+
+function ScrollViewport ({
+  children,
+  classname,
+  height,
+}: {
+  children: ReactNode,
+  classname: string,
+  height: string,
+  DEBUG?: boolean,
+}) {
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <ScrollProgressProvider boxRef={boxRef}>
+      <div
+        className={classname}
+        ref={boxRef}
+        style={{
+          height: `${height}vh`
+        }}>
+        {children}
+      </div>
+    </ScrollProgressProvider>
+  )
+}
+
+function Slide({
+  classname,
+  text,
+}: {
+  classname: string,
+  text: string,
+}) {
+  const { progress } = useScrollProgress();
+
+  return (
+    <div className={classname}>
+      <h1
+        style={{
+          transform: `scale(${(progress * 2) + 1}`,
+        }}
+      >{text}</h1>
+      <br />
+      <div>{progress.toFixed(2)}</div>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
     <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+      <ScrollViewport classname={styles.one} height="800">
+        <Slide classname={styles.content} text="🙂" />
+      </ScrollViewport>
+      <ScrollViewport classname={styles.two} height="200" DEBUG>
+        <Slide classname={styles.content} text="🙂" />
+      </ScrollViewport>
+      <ScrollViewport classname={styles.three} height="100">
+        <Slide classname={styles.content} text="🙂" />
+      </ScrollViewport >
+      <ScrollViewport classname={styles.four} height="100">
+        <Slide classname={styles.content} text="🙂" />
+      </ScrollViewport >
+      <ScrollViewport classname={styles.five} height="100">
+        <Slide classname={styles.content} text="🙂" />
+      </ScrollViewport >
+      <ScrollViewport classname={styles.six} height="100">
+        <Slide classname={styles.content} text="🙂" />
+      </ScrollViewport >
+      <ScrollViewport classname={styles.seven} height="100" >
+        <Slide classname={styles.content} text="🙂" />
+      </ScrollViewport >
     </main>
   );
 }
